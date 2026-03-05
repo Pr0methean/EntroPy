@@ -16,7 +16,8 @@ def print_entropy_stats(filepath, chunk_size=1024 * 1024 * 16):  # 16MB chunks
             matrix2 = np.zeros((65536, 256), dtype=np.uint64)
 
             total_bytes = 0
-            overlap = np.array([], dtype=np.uint8)  # Initialize as empty array
+            last_byte = None  # For first-order bridging
+            last_two_bytes = None  # For second-order bridging (as a tuple or int pair)
 
             while True:
                 chunk = f.read(chunk_size)
@@ -27,31 +28,53 @@ def print_entropy_stats(filepath, chunk_size=1024 * 1024 * 16):  # 16MB chunks
                 arr = np.frombuffer(chunk, dtype=np.uint8)
                 current_len = len(arr)
 
-                # Concatenate with overlap (works even if overlap is empty)
-                arr = np.concatenate([overlap, arr])
-
                 # Update byte counts (only count new bytes)
                 byte_counts += np.bincount(arr, minlength=256).astype(np.uint64)
-                total_bytes += len(arr)
 
-                # First-order transitions (need at least 2 bytes)
+                # Bridging transition from previous chunk
+                if last_byte is not None:
+                    combined = last_byte.astype(int) * 256 + arr[0]
+                    matrix.flat[combined] += 1
+
+                # Transitions within new chunk
                 if len(arr) >= 2:
                     x = arr[:-1]
                     y = arr[1:]
                     combined = x.astype(int) * 256 + y
                     matrix.flat += np.bincount(combined, minlength=65536).astype(np.uint64)
 
-                # Second-order transitions (need at least 3 bytes)
-                if len(arr) >= 3:
-                    idx_prev = arr[:-2].astype(int) * 256 + arr[1:-1]
-                    target = arr[2:]
-                    combined = idx_prev * 256 + target
-                    matrix2.flat += np.bincount(combined, minlength=16777216).astype(np.uint64)
+                # Need at least 2 bytes for context + 1 target
+
+                # Bridging transitions from previous chunk
+                if last_two_bytes is not None:
+                    # last_two_bytes is a tuple (byte1, byte2) representing the last
+                    # two bytes from the previous chunk in order
+
+                    # We need at least 1 byte in arr to form a triple
+                    if len(arr) >= 1:
+                        # Triple: (last_two_bytes[0], last_two_bytes[1], arr[0])
+                        idx_prev = (last_two_bytes[0] << 8) | last_two_bytes[1]
+                        combined = (idx_prev << 8) | arr[0]
+                        matrix2.flat[combined] += 1
+
+                # If we have last_byte but not last_two_bytes, we might still form
+                # a bridging triple if arr provides enough context
+                if last_byte is not None and len(arr) >= 2:
+                    # Triple: (last_byte, arr[0], arr[1])
+                    idx_prev = (last_byte << 8) | arr[0]
+                    combined = (idx_prev << 8) | arr[1]
+                    matrix2.flat[combined] += 1
 
                 total_bytes += current_len
-                overlap = arr[-2:] if len(arr) >= 2 else arr # Keep last 2 bytes for the next chunk transition
+                # Update last bytes for next chunk
+                if len(arr) >= 2:
+                    last_two_bytes = (arr[-2], arr[-1])
+                    last_byte = arr[-1]
+                elif len(arr) == 1:
+                    last_two_bytes = None  # Not enough for two-byte context
+                    last_byte = arr[0]
 
-                print(f"Progress: {total_bytes / (1024 ** 3):.2f} GiB processed...", end='\r')
+                print(f"Progress: {total_bytes / (1024 ** 3):.2f} GiB processed...", end='\n\r')
 
     except FileNotFoundError:
         return "File not found."
