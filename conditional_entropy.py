@@ -3,20 +3,21 @@ import sys
 
 
 def print_entropy_stats(filepath, chunk_size=1024 * 1024 * 16):  # 16MB chunks
-    # Initialize a 256x256 transition matrix
-    # uint64 allows for counts up to 18 quintillion (plenty for 16GiB)
-    matrix = np.zeros((256, 256), dtype=np.uint64)
-    byte_counts = np.zeros(256, dtype=np.uint64)
-    # Order-2 matrix: [prev_byte1][prev_byte2][current_byte]
-    # To save RAM, we flatten the first two dimensions: [65536][256]
-    # 65536 * 256 * 8 bytes (uint64) = 128 MB RAM. Very efficient.
-    matrix2 = np.zeros((65536, 256), dtype=np.uint64)
-
-    total_bytes = 0
-    overlap = None
 
     try:
         with open(filepath, 'rb') as f:
+            # Initialize a 256x256 transition matrix
+            # uint64 allows for counts up to 18 quintillion (plenty for 16GiB)
+            matrix = np.zeros((256, 256), dtype=np.uint64)
+            byte_counts = np.zeros(256, dtype=np.uint64)
+            # Order-2 matrix: [prev_byte1][prev_byte2][current_byte]
+            # To save RAM, we flatten the first two dimensions: [65536][256]
+            # 65536 * 256 * 8 bytes (uint64) = 128 MB RAM. Very efficient.
+            matrix2 = np.zeros((65536, 256), dtype=np.uint64)
+
+            total_bytes = 0
+            overlap = np.array([], dtype=np.uint8)  # Initialize as empty array
+
             while True:
                 chunk = f.read(chunk_size)
                 if not chunk:
@@ -26,24 +27,21 @@ def print_entropy_stats(filepath, chunk_size=1024 * 1024 * 16):  # 16MB chunks
                 arr = np.frombuffer(chunk, dtype=np.uint8)
                 current_len = len(arr)
 
-                # Handle overlap from previous chunk
-                if overlap is not None:
-                    arr = np.concatenate([overlap, arr])
+                # Concatenate with overlap (works even if overlap is empty)
+                arr = np.concatenate([overlap, arr])
 
                 # Update byte counts (only count new bytes)
-                if overlap is None:
-                    byte_counts += np.bincount(arr, minlength=256).astype(np.uint64)
-                else:
-                    byte_counts += np.bincount(arr[len(overlap):], minlength=256).astype(np.uint64)
+                byte_counts += np.bincount(arr, minlength=256).astype(np.uint64)
+                total_bytes += len(arr)
 
-                # First-order transitions
+                # First-order transitions (need at least 2 bytes)
                 if len(arr) >= 2:
                     x = arr[:-1]
                     y = arr[1:]
                     combined = x.astype(int) * 256 + y
                     matrix.flat += np.bincount(combined, minlength=65536).astype(np.uint64)
 
-                # Second-order transitions
+                # Second-order transitions (need at least 3 bytes)
                 if len(arr) >= 3:
                     idx_prev = arr[:-2].astype(int) * 256 + arr[1:-1]
                     target = arr[2:]
