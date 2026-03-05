@@ -65,6 +65,12 @@ def print_entropy_stats(filepath, chunk_size=1024 * 1024 * 16):  # 16MB chunks
                     combined = (idx_prev << 8) | arr[1]
                     matrix2.flat[combined] += 1
 
+                if len(arr) >= 3:
+                    idx_prev = arr[:-2].astype(int) * 256 + arr[1:-1]
+                    target = arr[2:]
+                    combined = idx_prev * 256 + target
+                    matrix2.flat += np.bincount(combined, minlength=16777216).astype(np.uint64)
+
                 total_bytes += current_len
                 # Update last bytes for next chunk
                 if len(arr) >= 2:
@@ -132,16 +138,16 @@ def print_entropy_stats(filepath, chunk_size=1024 * 1024 * 16):  # 16MB chunks
         g2_2 = 2 * (total_bytes - 2) * np.log(2) * (h0 - h2_cond)
         df2 = 16711680
 
-    print(f"\nOrder-2 Results (3-byte tuples):")
-    print(f"Conditional Entropy (H2|1,0): {h2_cond:.15f} bits/byte")
-    print(f"G-test:                       {g2:.15f} (df={df})")
-    print(f"Z-Score:                      {(g2 - df) / np.sqrt(2 * df):.15f}")
+        print(f"\nOrder-2 Results (3-byte tuples):")
+        print(f"Conditional Entropy (H2|1,0): {h2_cond:.15f} bits/byte")
+        print(f"G-test:                       {g2_2:.15f} (df={df2})")
+        print(f"Z-Score:                      {(g2_2 - df2) / np.sqrt(2 * df2):.15f}")
     return None
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python script.py <filename>")
+        print(f"Usage: python {__file__} <filename>")
     else:
         print_entropy_stats(sys.argv[1])
 
