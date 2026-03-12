@@ -113,18 +113,18 @@ def print_entropy_stats_mmap(filepath):
                 products_sorted = np.sort(products)
                 h_rows2[i] = math.fsum(products_sorted)
 
-    products = p_condition * h_rows2
-    products_sorted = np.sort(products)  # Smallest to largest
-    h2_cond = math.fsum(products_sorted)  # Sum smallest first for better accuracy
+        products = p_condition * h_rows2
+        products_sorted = np.sort(products)  # Smallest to largest
+        h2_cond = math.fsum(products_sorted)  # Sum smallest first for better accuracy
 
-    # G-test for second order
-    g2_2 = 2 * (total_bytes - 2) * np.log(2) * (h0 - h2_cond)
-    df2 = 16711680
+        # G-test for second order
+        g2_2 = 2 * (total_bytes - 2) * np.log(2) * (h0 - h2_cond)
+        df2 = 16711680
 
-    print(f"\nOrder-2 Results (3-byte tuples):")
-    print(f"Conditional Entropy (H2|1,0): {h2_cond:.15f} bits/byte")
-    print(f"G-test:                       {g2_2:.15f} (df={df2})")
-    print(f"Z-Score:                      {(g2_2 - df2) / np.sqrt(2 * df2):.15f}")
+        print(f"\nOrder-2 Results (3-byte tuples):")
+        print(f"Conditional Entropy (H2|1,0): {h2_cond:.15f} bits/byte")
+        print(f"G-test:                       {g2_2:.15f} (df={df2})")
+        print(f"Z-Score:                      {(g2_2 - df2) / np.sqrt(2 * df2):.15f}")
 
     return None
 
