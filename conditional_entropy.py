@@ -75,7 +75,7 @@ def print_entropy_stats_mmap(filepath):
     # Vectorized calculation where possible
     p_y = row_sums[valid_rows] / (total_bytes - 1)
 
-    h_rows = np.zeros(math.fsum(valid_rows))
+    h_rows = np.zeros(np.sum(valid_rows))
     row_indices = np.where(valid_rows)[0]
 
     for i, row_idx in enumerate(row_indices):
