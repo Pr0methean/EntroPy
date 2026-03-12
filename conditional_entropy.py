@@ -102,7 +102,7 @@ def print_entropy_stats_mmap(filepath):
     if np.any(active_rows):
         p_condition = row_sums2[active_rows] / (total_bytes - 2)
 
-        h_rows2 = np.zeros(math.fsum(active_rows))
+        h_rows2 = np.zeros(np.sum(active_rows))
         row_indices2 = np.where(active_rows)[0]
 
         for i, row_idx in enumerate(row_indices2):
