@@ -12,22 +12,19 @@ def process_chunk_fast(arr, matrix, matrix2, byte_counts,
     """
     n = len(arr)
 
-    # Update byte counts
+    # Update byte counts and transitions in a single pass
     for i in range(n):
         byte_counts[arr[i]] += 1
 
-    # Process transitions in a single pass
-    if n >= 2:
-        for i in range(n - 1):
+        if i < n - 1:
             # First order transitions
             combined = int(arr[i]) * 256 + int(arr[i + 1])
             matrix[combined // 256, combined % 256] += 1
 
             # Second order transitions (need 3 bytes)
             if i < n - 2:
-                idx_prev = int(arr[i]) * 256 + int(arr[i + 1])
                 target = int(arr[i + 2])
-                matrix2[idx_prev, target] += 1
+                matrix2[combined, target] += 1
 
     # Handle bridging between chunks
     if last_byte is not None and n >= 1:
