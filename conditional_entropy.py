@@ -3,7 +3,6 @@ import math
 import numpy as np
 import sys
 import os
-import mmap
 from numba import jit
 
 
