@@ -41,8 +41,8 @@ def print_entropy_stats_mmap(filepath):
         with open(filepath, 'rb') as f:
             # Memory map the entire file
             data = np.memmap(filepath, dtype=np.uint8, mode='r')
-
-            print(f"Processing {len(data)} bytes as a single array...")
+            total_bytes = len(data)
+            print(f"Processing {total_bytes} bytes as a single array...")
 
             # Initialize matrices
             matrix = np.zeros((256, 256), dtype=np.uint64)
@@ -51,8 +51,6 @@ def print_entropy_stats_mmap(filepath):
 
             # Process entire array in one go
             process_mmap_data(data, matrix, matrix2, byte_counts)
-
-            total_bytes = len(data)
 
     except FileNotFoundError:
         return "File not found."
